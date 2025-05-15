@@ -29,7 +29,10 @@ app.get("/", (req, res) => {
       JSON-format som skickats in. Lösenordet blir hashat samt får salt för säker lagring. </p>
       <p> PUT /users | Uppdaterar all information om en användare med specifikt id <br> 
       för att sedan returnera de nya username och name tillbaka till klienten.</p>
-      <p> POST /login | </p>
+      <p> POST /login | Kollar username och password som klienten skickar <br>
+      med det som finns i databasen. Klient-passwordet hashas med det lagrade saltet innan jämförelse <br>
+      då password inte lagras i klartext. Stämmer uppgifterna så "loggas" man in, vilket innebär att man <br>
+      kan se name-attributet i.e ens riktiga namn.</p>
  
 
       
@@ -98,7 +101,7 @@ app.put("/users/:id", async function (req, res) {
     hashedPassword,
     salt,
     req.params.id
-  ])
+  ]) 
   
   let sql2 = "SELECT username, name FROM users WHERE id = ?"
   let [result] = await connection.execute(sql2, [req.params.id])
@@ -109,21 +112,16 @@ app.post("/login", async function(req,res){
 
   let connection = await getDBConnnection()
   let sql = "SELECT * FROM users WHERE username = ?"
-  let [results] = await connection.execute(sql, [req.body.username])
-
- 
-
-
-  const isPasswordValid = await bcrypt.compare(req.body.password, results.salt);
+  let [results] = await connection.execute(sql, [req.body.username])  
+  const isPasswordValid = await bcrypt.compare(req.body.password, results[0].password);
 
   if (isPasswordValid) {
     res.status(200)
-    res.send("<p>Hallå, ditt riktiga namn är </p>", results.name)
+    res.send("<p>Hallå, ditt riktiga namn är: </p>" + results[0].name)
   } 
   else {
     res.status(400).json({ error: "Wrong username or password!" });
   }
-
 
 })
 
